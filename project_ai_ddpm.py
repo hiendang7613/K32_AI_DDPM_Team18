@@ -526,39 +526,39 @@ class DiffusionModel(keras.Model):
 '''## Create Model ##'''
 def createModel(strategy, img_shape, widths, has_attention, num_res_blocks, norm_groups, total_timesteps, first_conv_channels, **kwargs):
 
-    # with strategy.scope():
-    # Build the unet model
-    network = build_model(
-        img_shape=img_shape,
-        widths=widths,
-        has_attention=has_attention,
-        num_res_blocks=num_res_blocks,
-        norm_groups=norm_groups,
-        first_conv_channels=first_conv_channels,
-        activation_fn=keras.activations.swish,
-    )
-    ema_network = build_model(
-        img_shape=img_shape,
-        widths=widths,
-        has_attention=has_attention,
-        num_res_blocks=num_res_blocks,
-        norm_groups=norm_groups,
-        first_conv_channels=first_conv_channels,
-        activation_fn=keras.activations.swish,
-    )
-    ema_network.set_weights(network.get_weights())  # Initially the weights are the same
+    with strategy.scope():
+        # Build the unet model
+        network = build_model(
+            img_shape=img_shape,
+            widths=widths,
+            has_attention=has_attention,
+            num_res_blocks=num_res_blocks,
+            norm_groups=norm_groups,
+            first_conv_channels=first_conv_channels,
+            activation_fn=keras.activations.swish,
+        )
+        ema_network = build_model(
+            img_shape=img_shape,
+            widths=widths,
+            has_attention=has_attention,
+            num_res_blocks=num_res_blocks,
+            norm_groups=norm_groups,
+            first_conv_channels=first_conv_channels,
+            activation_fn=keras.activations.swish,
+        )
+        ema_network.set_weights(network.get_weights())  # Initially the weights are the same
 
-    # Get an instance of the Gaussian Diffusion utilities
-    gdf_util = GaussianDiffusion(timesteps=total_timesteps)
-    
-    # Get the model
-    model = DiffusionModel(
-        network=network,
-        ema_network=ema_network,
-        gdf_util=gdf_util,
-        timesteps=total_timesteps,
-        img_shape=img_shape
-    )
+        # Get an instance of the Gaussian Diffusion utilities
+        gdf_util = GaussianDiffusion(timesteps=total_timesteps)
+        
+        # Get the model
+        model = DiffusionModel(
+            network=network,
+            ema_network=ema_network,
+            gdf_util=gdf_util,
+            timesteps=total_timesteps,
+            img_shape=img_shape
+        )
 
     return model
 
@@ -580,13 +580,11 @@ def GetDataset(batch_size, dataset_name, splits, data_dir, **kwargs):
 
 if __name__=='__main__':
     # Training with multi GPU
-    # strategy = tf.distribute.MirroredStrategy()
-    # print("Number of devices: {}".format(strategy.num_replicas_in_sync))
-    strategy=None
-    print('Helloworld--------------------------')
+    strategy = tf.distribute.MirroredStrategy()
+    print("Number of devices: {}".format(strategy.num_replicas_in_sync))
 
     # Hyper parameters
-    batch_size=train_cfg['batch_size']#*strategy.num_replicas_in_sync
+    batch_size=train_cfg['batch_size']*strategy.num_replicas_in_sync
     steps_per_epoch=dataset_cfg['num_train_records']/batch_size
     num_epochs=train_cfg['num_epochs']
 
